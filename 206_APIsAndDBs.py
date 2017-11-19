@@ -79,7 +79,7 @@ def get_user_tweets(user):
 
 # Write an invocation to the function for the "umich" user timeline and
 # save the result in a variable called umich_tweets:
-
+umich_tweets = get_user_tweets('umich')
 
 
 
