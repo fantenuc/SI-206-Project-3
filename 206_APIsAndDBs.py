@@ -19,7 +19,7 @@ import json
 import sqlite3
 
 ## Your name: Francesca Antenucci
-## The names of anyone you worked with on this project: Alexander Shell
+## The names of anyone you worked with on this project: Alex Shell
 
 #####
 
@@ -60,7 +60,19 @@ except:
 
 
 # Define your function get_user_tweets here:
+def get_user_tweets(user):
+    if user in CACHE_DICTION:
+            print('Accessing Cached Data')
+            twitter_results = CACHE_DICTION[user]
+    else:
+        print('Using Twitter API')
+        twitter_results = api.user_timeline(id = user, count = 20)
+        CACHE_DICTION['user'] = twitter_results
 
+        f = open(CACHE_FNAME, 'w')
+        f.write(json.dumps(CACHE_DICTION, indent = 2))
+        f.close()
+    return twitter_results
 
 
 
