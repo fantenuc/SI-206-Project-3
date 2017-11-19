@@ -79,7 +79,7 @@ def get_user_tweets(user):
 
 # Write an invocation to the function for the "umich" user timeline and
 # save the result in a variable called umich_tweets:
-umich_tweets = get_user_tweets('umich')
+umich_tweets = get_user_tweets('@umich')
 
 
 
@@ -105,6 +105,16 @@ cur.execute('CREATE TABLE Users (user_id TEXT PRIMARY KEY, screen_name TEXT, num
 cur.execute('DROP TABLE IF EXISTS Tweets')
 cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, text TEXT, user_posted TEXT, time_posted DATETIME, retweets INT, FOREIGN KEY(user_posted) REFERENCES users_posted(user_id))')
 
+for usr in umich_tweets:
+    tup = usr['user']['user']['id_str'], usr['user']['user']['screen_name'], usr['user']['user']['favourites_count'], usr['user']['user']['description']
+    cur.execute('INSERT INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', tup)
+
+
+for tw in umich_tweets:
+    tup = tw['user']['id_str'], tw['user']['text'], tw['user']['user']['id_str'], tw['user']['created_at'], tw['user']['retweet_count']
+    cur.execute('INSERT INTO Tweets (tweet_id, text, user_posted, time_posted, retweets) VALUES (?, ?, ?, ?, ?)', tup)
+
+conn.commit()
 ## HINT: There's a Tweepy method to get user info, so when you have a
 ## user id or screenname you can find alllll the info you want about
 ## the user.
