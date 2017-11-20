@@ -75,12 +75,9 @@ def get_user_tweets(user):
     return twitter_results
 
 
-
-
 # Write an invocation to the function for the "umich" user timeline and
 # save the result in a variable called umich_tweets:
 umich_tweets = get_user_tweets('@umich')
-
 
 
 ## Task 2 - Creating database and loading data into database
@@ -103,18 +100,26 @@ cur.execute('CREATE TABLE Users (user_id TEXT PRIMARY KEY, screen_name TEXT, num
 # NOTE: Be careful that you have the correct user ID reference in
 # the user_id column! See below hints.
 cur.execute('DROP TABLE IF EXISTS Tweets')
-cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, text TEXT, user_posted TEXT, time_posted DATETIME, retweets INT, FOREIGN KEY(user_posted) REFERENCES users_posted(user_id))')
+cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, text TEXT, user_posted TEXT, time_posted DATETIME, retweets INT, FOREIGN KEY(user_posted) REFERENCES Users(user_id))')
 
 for usr in umich_tweets:
-    tup = usr['user']['user']['id_str'], usr['user']['user']['screen_name'], usr['user']['user']['favourites_count'], usr['user']['user']['description']
-    cur.execute('INSERT INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', tup)
+    user_tup = usr['user']['id_str'], usr['user']['screen_name'], usr['user']['favourites_count'], usr['user']['description']
+    cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup)
 
+    mentions = usr['entities']['user_mentions']
+    if len(mentions) > 0:
+        for user in mentions:
+            user_results = api.get_user(user['screen_name'])
+            user_tup = user_results['id_str'], user_results['screen_name'], user_results['favourites_count'], user_results['description']
+            cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup)
 
 for tw in umich_tweets:
-    tup = tw['user']['id_str'], tw['user']['text'], tw['user']['user']['id_str'], tw['user']['created_at'], tw['user']['retweet_count']
-    cur.execute('INSERT INTO Tweets (tweet_id, text, user_posted, time_posted, retweets) VALUES (?, ?, ?, ?, ?)', tup)
+    tweet_tup = tw['id_str'], tw['text'], tw['user']['id_str'], tw['created_at'], tw['retweet_count']
+    cur.execute('INSERT OR IGNORE INTO Tweets (tweet_id, text, user_posted, time_posted, retweets) VALUES (?, ?, ?, ?, ?)', tweet_tup)
 
 conn.commit()
+
+
 ## HINT: There's a Tweepy method to get user info, so when you have a
 ## user id or screenname you can find alllll the info you want about
 ## the user.
