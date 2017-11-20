@@ -32,9 +32,11 @@ access_token_secret = twitter_info.access_token_secret
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 
+
 # Set up library to grab stuff from twitter with your authentication, and
 # return it in a JSON format
 api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
+
 
 ##### END TWEEPY SETUP CODE
 
@@ -46,33 +48,35 @@ api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 ## from Twitter. (This may sound familiar...) We have provided a
 ## CACHE_FNAME variable for you for the cache file name, but you must
 ## write the rest of the code in this file.
-
 CACHE_FNAME = "206_APIsAndDBs_cache.json"
+
 
 # Put the rest of your caching setup here:
 try:
-    cache_file = open(CACHE_FNAME,'r')
-    cache_contents = cache_file.read()
-    cache_file.close()
-    CACHE_DICTION = json.loads(cache_contents)
+    cache_file = open(CACHE_FNAME,'r') #opens and reads file
+    cache_contents = cache_file.read() #converts contents to string
+    cache_file.close() #closes file
+    CACHE_DICTION = json.loads(cache_contents) #loads contents to dictionary
 except:
     CACHE_DICTION = {}
 
 
 # Define your function get_user_tweets here:
 def get_user_tweets(user):
-    if user in CACHE_DICTION:
-            print('Accessing Cached Data')
-            twitter_results = CACHE_DICTION[user]
-    else:
-        print('Using Twitter API')
-        twitter_results = api.user_timeline(id = user, count = 20)
-        CACHE_DICTION['user'] = twitter_results
+    if user in CACHE_DICTION: #access cached data if user in dictionary
+        print('Accessing Cached Data')
+        twitter_results = CACHE_DICTION[user]
+        return twitter_results
 
-        f = open(CACHE_FNAME, 'w')
-        f.write(json.dumps(CACHE_DICTION, indent = 2))
+    else:
+        print('Using Twitter API') #access Twitter API if user not in dictionary
+        twitter_results = api.user_timeline(id = user, count = 20) #adding 20 users to results
+        CACHE_DICTION[user] = twitter_results
+
+        f = open(CACHE_FNAME, 'w') #writing json
+        f.write(json.dumps(CACHE_DICTION, indent = 2)) #indent for easier read
         f.close()
-    return twitter_results
+        return twitter_results
 
 
 # Write an invocation to the function for the "umich" user timeline and
@@ -87,10 +91,10 @@ umich_tweets = get_user_tweets('@umich')
 # NOTE: For example, if the user with the "TedXUM" screen name is
 # mentioned in the umich timeline, that Twitter user's info should be
 # in the Users table, etc.
-conn = sqlite3.connect('206_APIsAndDBs.sqlite')
+conn = sqlite3.connect('206_APIsAndDBs.sqlite') #writing sqlite file
 cur = conn.cursor()
 
-cur.execute('DROP TABLE IF EXISTS Users')
+cur.execute('DROP TABLE IF EXISTS Users') #creating Users table with user_id as Primary Key
 cur.execute('CREATE TABLE Users (user_id TEXT PRIMARY KEY, screen_name TEXT, num_favs INT, description TEXT)')
 
 
@@ -99,7 +103,7 @@ cur.execute('CREATE TABLE Users (user_id TEXT PRIMARY KEY, screen_name TEXT, num
 # umich timeline.
 # NOTE: Be careful that you have the correct user ID reference in
 # the user_id column! See below hints.
-cur.execute('DROP TABLE IF EXISTS Tweets')
+cur.execute('DROP TABLE IF EXISTS Tweets') #creating Tweets table with tweet_id as Primary Key and user_posted as Foreign Key
 cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, text TEXT, user_posted TEXT, time_posted DATETIME, retweets INT, FOREIGN KEY(user_posted) REFERENCES Users(user_id))')
 
 for usr in umich_tweets:
@@ -107,11 +111,10 @@ for usr in umich_tweets:
     cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup)
 
     mentions = usr['entities']['user_mentions']
-    if len(mentions) > 0:
-        for user in mentions:
-            user_results = api.get_user(user['screen_name'])
-            user_tup = user_results['id_str'], user_results['screen_name'], user_results['favourites_count'], user_results['description']
-            cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup)
+    for user in mentions:
+        user_results = api.get_user(user['screen_name'])
+        user_tup = user_results['id_str'], user_results['screen_name'], user_results['favourites_count'], user_results['description']
+        cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup)
 
 for tw in umich_tweets:
     tweet_tup = tw['id_str'], tw['text'], tw['user']['id_str'], tw['created_at'], tw['retweet_count']
