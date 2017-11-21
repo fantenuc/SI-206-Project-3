@@ -18,7 +18,7 @@ import twitter_info # same deal as always...
 import json
 import sqlite3
 
-## Your name: Francesca Antenucci
+## Your name: Frankie Antenucci
 ## The names of anyone you worked with on this project: Alex Shell
 
 #####
@@ -81,7 +81,7 @@ def get_user_tweets(user):
 
 # Write an invocation to the function for the "umich" user timeline and
 # save the result in a variable called umich_tweets:
-umich_tweets = get_user_tweets('@umich')
+umich_tweets = get_user_tweets('@umich') #calling @umich timeline
 
 
 ## Task 2 - Creating database and loading data into database
@@ -107,18 +107,18 @@ cur.execute('DROP TABLE IF EXISTS Tweets') #creating Tweets table with tweet_id 
 cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, text TEXT, user_posted TEXT, time_posted DATETIME, retweets INT, FOREIGN KEY(user_posted) REFERENCES Users(user_id))')
 
 for usr in umich_tweets:
-    user_tup = usr['user']['id_str'], usr['user']['screen_name'], usr['user']['favourites_count'], usr['user']['description']
-    cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup)
+    user_tup = usr['user']['id_str'], usr['user']['screen_name'], usr['user']['favourites_count'], usr['user']['description'] #grabbing user data based on cached json keys
+    cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup) #inserting user data into Users table
 
-    mentions = usr['entities']['user_mentions']
-    for user in mentions:
+    mentions = usr['entities']['user_mentions'] #assigning mentions variable to mentioned users in tweet
+    for user in mentions: #if mentioned user in tweet
         user_results = api.get_user(user['screen_name'])
-        user_tup = user_results['id_str'], user_results['screen_name'], user_results['favourites_count'], user_results['description']
-        cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup)
+        user_tup = user_results['id_str'], user_results['screen_name'], user_results['favourites_count'], user_results['description'] #grabbing mentioned user data based on cached json keys
+        cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)', user_tup) #inserting mention user data into Users table
 
 for tw in umich_tweets:
-    tweet_tup = tw['id_str'], tw['text'], tw['user']['id_str'], tw['created_at'], tw['retweet_count']
-    cur.execute('INSERT OR IGNORE INTO Tweets (tweet_id, text, user_posted, time_posted, retweets) VALUES (?, ?, ?, ?, ?)', tweet_tup)
+    tweet_tup = tw['id_str'], tw['text'], tw['user']['id_str'], tw['created_at'], tw['retweet_count'] #grabbing tweet data based on cached json keys
+    cur.execute('INSERT OR IGNORE INTO Tweets (tweet_id, text, user_posted, time_posted, retweets) VALUES (?, ?, ?, ?, ?)', tweet_tup) #inserting tweet data into Tweets table
 
 conn.commit()
 
@@ -140,45 +140,59 @@ conn.commit()
 
 # Make a query to select all of the records in the Users database.
 # Save the list of tuples in a variable called users_info.
+cur.execute('SELECT * FROM Users') #selecting all of the records from Users table
+users_info = cur.fetchall()
+# print(users_info)
 
-users_info = True
 
 # Make a query to select all of the user screen names from the database.
 # Save a resulting list of strings (NOT tuples, the strings inside them!)
 # in the variable screen_names. HINT: a list comprehension will make
 # this easier to complete!
-screen_names = True
+cur.execute('SELECT screen_name FROM Users') #selecting just the screen name of users from Users table
+screen_names = [user[0] for user in cur.fetchall()] #assigning screen_names to the screen name string within tuple
+# print(screen_names)
 
 
 # Make a query to select all of the tweets (full rows of tweet information)
 # that have been retweeted more than 10 times. Save the result
 # (a list of tuples, or an empty list) in a variable called retweets.
-retweets = True
+cur.execute('SELECT * FROM Tweets WHERE retweets > 10') #selecting all of the records of a tweet from Tweets table if there are more than 10 retweets on specific tweet
+retweets = cur.fetchall()
+# print(retweets)
 
 
 # Make a query to select all the descriptions (descriptions only) of
 # the users who have favorited more than 500 tweets. Access all those
 # strings, and save them in a variable called favorites,
 # which should ultimately be a list of strings.
-favorites = True
+cur.execute('SELECT description FROM Users WHERE num_favs > 500') #selecting the description of the user from Users table if the user has favorited more than 500 tweets
+favorites = [user[0] for user in cur.fetchall()] #assigning favorites to the description string within tuple
+# print(favorites)
 
 
 # Make a query using an INNER JOIN to get a list of tuples with 2
 # elements in each tuple: the user screenname and the text of the
 # tweet. Save the resulting list of tuples in a variable called joined_data2.
-joined_data = True
+cur.execute('SELECT screen_name, text FROM Tweets INNER JOIN Users ON user_posted = user_id') #using INNER JOIN to grab screen name and text of the tweet from both the Tweets and Users tables
+joined_data = cur.fetchall()
+# print(joined_data)
+
 
 # Make a query using an INNER JOIN to get a list of tuples with 2
 # elements in each tuple: the user screenname and the text of the
 # tweet in descending order based on retweets. Save the resulting
 # list of tuples in a variable called joined_data2.
-
-joined_data2 = True
+cur.execute('SELECT screen_name, text FROM Tweets INNER JOIN Users ON user_posted = user_id ORDER BY retweets DESC') #using INNER JOIN to grab screen name and text of the tweet from the highest retweet count to lowest from both the Tweets and Users tables
+joined_data2 = cur.fetchall()
+# print(joined_data2)
 
 
 ### IMPORTANT: MAKE SURE TO CLOSE YOUR DATABASE CONNECTION AT THE END
 ### OF THE FILE HERE SO YOU DO NOT LOCK YOUR DATABASE (it's fixable,
 ### but it's a pain). ###
+cur.close() #closing database connection
+
 
 ###### TESTS APPEAR BELOW THIS LINE ######
 ###### Note that the tests are necessary to pass, but not sufficient --
